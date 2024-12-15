@@ -76,3 +76,7 @@ application-local.properties
 application/src/main/resources/console/
 application/src/main/resources/uc/
 application/src/main/resources/presets/
+/Cannot
+/Could
+/java_pid16048.hprof
+/java_pid18116.hprof
