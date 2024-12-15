@@ -44,23 +44,23 @@
             <p class="alert alert-error" th:if="${#fields.hasErrors('username')}" th:errors="*{username}"></p>
         </div>
 
-        <div class="form-item">
-            <label for="displayName" th:text="#{form.displayName.label}"></label>
-            <div class="form-input">
-                <input
-                    type="text"
-                    id="displayName"
-                    name="displayName"
-                    autocomplete="off"
-                    spellcheck="false"
-                    autocorrect="off"
-                    autocapitalize="off"
-                    required
-                    th:field="*{displayName}"
-                />
-            </div>
-            <p class="alert alert-error" th:if="${#fields.hasErrors('displayName')}" th:errors="*{displayName}"></p>
-        </div>
+<!--        <div class="form-item">-->
+<!--            <label for="displayName" th:text="#{form.displayName.label}"></label>-->
+<!--            <div class="form-input">-->
+<!--                <input-->
+<!--                    type="text"-->
+<!--                    id="displayName"-->
+<!--                    name="displayName"-->
+<!--                    autocomplete="off"-->
+<!--                    spellcheck="false"-->
+<!--                    autocorrect="off"-->
+<!--                    autocapitalize="off"-->
+<!--                    required-->
+<!--                    th:field="*{displayName}"-->
+<!--                />-->
+<!--            </div>-->
+<!--            <p class="alert alert-error" th:if="${#fields.hasErrors('displayName')}" th:errors="*{displayName}"></p>-->
+<!--        </div>-->
     </div>
 
     <div class="form-item-group">
@@ -118,6 +118,24 @@
     <script th:inline="javascript">
         document.addEventListener("DOMContentLoaded", function () {
             setupPasswordConfirmation("password", "confirmPassword");
+
+            // Set up default displayName
+            const form = document.getElementById("signup-form");
+
+            form.addEventListener("submit", function () {
+                const displayNameInput = document.createElement("input");
+                displayNameInput.type = "hidden";
+                displayNameInput.name = "displayName";
+
+                // Generate a random username in the format “用户_xxxxx” where xxxxx is a mix of lowercase letters and numbers
+                const randomSuffix = Array.from({length: 5}, () => {
+                    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+                    return chars.charAt(Math.floor(Math.random() * chars.length));
+                }).join("");
+                displayNameInput.value = `用户_${randomSuffix}`;
+
+                form.appendChild(displayNameInput);
+            });
         });
     </script>
 
