@@ -1,5 +1,5 @@
 # 发布方式:
-## 1. 构建
+## 1. 下载预选插件
 ### Windows
 ```
 ./gradlew.bat downloadPluginPresets
@@ -8,7 +8,16 @@
 ```
 ./gradlew downloadPluginPresets
 ```
-### 2.运行dockerfile
+
+## 2.构建
+```aiignore
+# Windows
+./gradlew.bat clean build -x check
+
+# macOS / Linux
+./gradlew clean build -x check
+```
+### 3.运行dockerfile
 运行dockerfile
 
 
