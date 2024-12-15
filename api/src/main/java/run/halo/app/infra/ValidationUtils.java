@@ -10,6 +10,7 @@ import org.springframework.web.server.ServerWebExchange;
 
 @UtilityClass
 public class ValidationUtils {
+    //不能修改为邮箱作为用户名, 权限和通知会有异常
     public static final String NAME_REGEX =
         "^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$";
     public static final Pattern NAME_PATTERN = Pattern.compile(NAME_REGEX);
