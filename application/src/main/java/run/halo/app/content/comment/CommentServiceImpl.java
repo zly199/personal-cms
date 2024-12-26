@@ -6,18 +6,26 @@ import static run.halo.app.extension.index.query.QueryFactory.isNull;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Set;
 import java.util.function.Function;
 import org.apache.commons.lang3.BooleanUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Sort;
 import org.springframework.lang.NonNull;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
+import run.halo.app.content.PostContentService;
+import run.halo.app.content.PostService;
 import run.halo.app.core.counter.CounterService;
 import run.halo.app.core.extension.content.Comment;
+import run.halo.app.core.extension.content.Post;
+import run.halo.app.core.extension.content.Snapshot;
 import run.halo.app.core.user.service.RoleService;
 import run.halo.app.core.user.service.UserService;
 import run.halo.app.extension.Extension;
@@ -29,8 +37,10 @@ import run.halo.app.extension.ReactiveExtensionClient;
 import run.halo.app.extension.Ref;
 import run.halo.app.extension.router.selector.FieldSelector;
 import run.halo.app.infra.SystemConfigurableEnvironmentFetcher;
+import run.halo.app.infra.SystemSetting;
 import run.halo.app.infra.exception.AccessDeniedException;
 import run.halo.app.plugin.extensionpoint.ExtensionGetter;
+import run.halo.app.security.authorization.AuthorityUtils;
 
 /**
  * Comment service implementation.
@@ -43,6 +53,10 @@ public class CommentServiceImpl extends AbstractCommentService implements Commen
 
     private final ExtensionGetter extensionGetter;
     private final SystemConfigurableEnvironmentFetcher environmentFetcher;
+    @Autowired
+    private PostContentService postContentService;
+    @Autowired
+    private PostService postService;
 
     public CommentServiceImpl(RoleService roleService, ReactiveExtensionClient client,
         UserService userService, CounterService counterService, ExtensionGetter extensionGetter,
@@ -100,13 +114,71 @@ public class CommentServiceImpl extends AbstractCommentService implements Commen
                 }
 
                 comment.getSpec().setHidden(false);
+
+                if (commentSetting.getLimitCommentRange() != null
+                        && commentSetting.getLimitCommentRange()) {
+                    return hasCommentPermission(comment,commentSetting)
+                        .flatMap(hasPermission -> {
+                            if (!hasPermission) {
+                                return Mono.error(
+                                    new AccessDeniedException("Allow only system users to comment.",
+                                        "problemDetail.comment.systemUsersOnly", null));
+                            }
+                            return Mono.just(comment); // 权限检查通过，继续返回评论
+                        });
+                }
                 return Mono.just(comment);
             })
+
             .flatMap(populatedComment -> Mono.when(populateOwner(populatedComment),
                     populateApproveState(populatedComment))
                 .thenReturn(populatedComment)
             )
             .flatMap(client::create);
+    }
+
+    Mono<Boolean> hasCommentPermission(Comment comment, SystemSetting.Comment commentSetting) {
+
+        return ReactiveSecurityContextHolder.getContext()
+            .flatMap(securityContext -> {
+                if (StringUtils.isBlank(commentSetting.getAllowCommentRole())){
+                    return Mono.just(false);
+                }
+                var authentication = securityContext.getAuthentication();
+                var roles = AuthorityUtils.authoritiesToRoles(authentication.getAuthorities());
+                return roleService.contains(roles,
+                    Set.of(commentSetting.getAllowCommentRole()));
+            }).flatMap( permissionRole -> {
+                    if (StringUtils.isBlank(commentSetting.getAllowCommentTag())){
+                        return Mono.just(false);
+                    }
+                    if (comment.getSpec() == null
+                        || comment.getSpec().getSubjectRef() == null
+                        || StringUtils.isBlank(comment.getSpec().getSubjectRef().getName())){
+                        return Mono.error(
+                            new AccessDeniedException("文章不存在"));
+                    }
+                    //只限制文章
+                    if (!StringUtils.equals(comment.getSpec().getSubjectRef().getKind(),"Post")){
+                        return Mono.just(true);
+                    }
+                    String postId = comment.getSpec().getSubjectRef().getName();
+                    return client.get(Post.class, postId)
+                        .flatMap(post ->{
+                            if (post == null){
+                                return Mono.error(
+                                    new AccessDeniedException("文章不存在"));
+                            }
+                            if (post.getSpec()!=null
+                                    && post.getSpec().getTags()!=null
+                                    && post.getSpec().getTags().contains(commentSetting.getAllowCommentTag())){
+                                // 免费分类
+                                return Mono.just(permissionRole || true);
+                            }
+                            return Mono.just(permissionRole || false);
+                        });
+                }
+            );
     }
 
     private Mono<Void> populateApproveState(Comment comment) {

@@ -105,6 +105,12 @@ public class SystemSetting {
         Boolean enable;
         Boolean requireReviewForNew;
         Boolean systemUserOnly;
+        // 是否限制评论角色
+        Boolean limitCommentRange;
+        // 允许评论角色
+        String allowCommentRole;
+        // 允许评论的分类
+        String allowCommentTag;
     }
 
     @Data

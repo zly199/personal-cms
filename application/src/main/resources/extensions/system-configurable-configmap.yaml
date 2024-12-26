@@ -41,7 +41,8 @@ data:
     {
       "enable": true,
       "requireReviewForNew": true,
-      "systemUserOnly": true
+      "systemUserOnly": true,
+      "limitCommentRange": false
     }
   menu: |
     {
