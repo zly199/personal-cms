@@ -17,12 +17,15 @@ import io.github.resilience4j.reactor.ratelimiter.operator.RateLimiterOperator;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springdoc.core.fn.builders.operation.Builder;
 import org.springdoc.webflux.core.fn.SpringdocRouteBuilder;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MultiValueMap;
@@ -75,7 +78,7 @@ public class CommentFinderEndpoint implements CustomEndpoint {
     public RouterFunction<ServerResponse> endpoint() {
         final var tag = "CommentV1alpha1Public";
         return SpringdocRouteBuilder.route()
-            .POST("comments", this::createComment,
+            .POST("comments", this::createCommentWithRedirectOnError,
                 builder -> builder.operationId("CreateComment_1")
                     .description("Create a comment.")
                     .tag(tag)
@@ -87,7 +90,14 @@ public class CommentFinderEndpoint implements CustomEndpoint {
                                 .implementation(CommentRequest.class))
                         ))
                     .response(responseBuilder()
+                        .responseCode("200") // 正常响应
                         .implementation(Comment.class))
+                    .response(responseBuilder()
+                        .responseCode("302") // 重定向响应
+                        .description("Redirect to another page on error"))
+                    .response(responseBuilder()
+                        .responseCode("400") // 错误响应
+                        .description("Bad Request"))
             )
             .POST("comments/{name}/reply", this::createReply,
                 builder -> builder.operationId("CreateReply_1")
@@ -147,6 +157,20 @@ public class CommentFinderEndpoint implements CustomEndpoint {
     @Override
     public GroupVersion groupVersion() {
         return GroupVersion.parseAPIVersion("api.halo.run/v1alpha1");
+    }
+
+    private Mono<ServerResponse> createCommentWithRedirectOnError(ServerRequest request) {
+        return createComment(request)
+            .onErrorResume(error -> {
+                // 返回 JSON 响应，包含跳转的 URL
+                Map<String, String> responseBody = Map.of(
+                    "message", "An error occurred, please visit the following URL.",
+                    "redirectUrl", "/tags/halo" // 指定跳转的路径
+                );
+                return ServerResponse.status(HttpStatus.UNAUTHORIZED) // 返回 400 状态码
+                    .contentType(MediaType.APPLICATION_JSON) // 设置响应类型为 JSON
+                    .bodyValue(responseBody);
+            });
     }
 
     Mono<ServerResponse> createComment(ServerRequest request) {

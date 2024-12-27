@@ -30,7 +30,7 @@ pnpm install
 
 pnpm build:packages
 
-pnpm dev 
+pnpm dev
 ```
 
 ## 运行 Halo
