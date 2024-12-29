@@ -164,7 +164,7 @@ public class CommentFinderEndpoint implements CustomEndpoint {
             .onErrorResume(error -> {
                 // 返回 JSON 响应，包含跳转的 URL
                 Map<String, String> responseBody = Map.of(
-                    "message", "An error occurred, please visit the following URL.",
+                    "errorMsg", "该内容仅付费用户查看",
                     "redirectUrl", "/tags/halo" // 指定跳转的路径
                 );
                 return ServerResponse.status(HttpStatus.UNAUTHORIZED) // 返回 400 状态码
