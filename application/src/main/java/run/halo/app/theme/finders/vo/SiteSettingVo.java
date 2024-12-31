@@ -92,6 +92,7 @@ public class SiteSettingVo {
                 .limitCommentUser(commentSetting.getLimitCommentRange())
                 .allowCommentRole(commentSetting.getAllowCommentRole())
                 .allowCommentTag(commentSetting.getAllowCommentTag())
+                .jumpUrl(commentSetting.getJumpUrl())
                 .build())
             .build();
     }
@@ -141,5 +142,7 @@ public class SiteSettingVo {
         String allowCommentRole;
         // 允许评论的分类
         String allowCommentTag;
+        // 跳转URL
+        String jumpUrl;
     }
 }

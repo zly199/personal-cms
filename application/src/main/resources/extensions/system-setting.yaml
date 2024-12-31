@@ -155,6 +155,14 @@ spec:
           label: "允许评论的标签"
           if: "$get(limitCommentRange).value === true"
           help: 该标签的文章可以任意评论
+        - $formkit: text
+          name: jumpUrl
+          label: "跳转链接"
+          if: "$get(limitCommentRange).value === true"
+          help: 无权限之后, 跳转链接.eg /error/msg
+          value: /about
+          validation: required
+
     - group: routeRules
       label: 主题路由设置
       formSchema:

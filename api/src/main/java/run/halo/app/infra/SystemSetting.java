@@ -111,6 +111,8 @@ public class SystemSetting {
         String allowCommentRole;
         // 允许评论的分类
         String allowCommentTag;
+        // 限制跳转页面
+        String jumpUrl;
     }
 
     @Data

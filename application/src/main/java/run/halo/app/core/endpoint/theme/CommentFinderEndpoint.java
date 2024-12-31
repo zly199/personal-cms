@@ -19,6 +19,8 @@ import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.net.URI;
 import java.util.List;
+import java.util.Locale;
+import org.springframework.context.MessageSource;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
@@ -51,6 +53,7 @@ import run.halo.app.extension.PageRequestImpl;
 import run.halo.app.extension.Ref;
 import run.halo.app.extension.router.IListRequest;
 import run.halo.app.infra.SystemConfigurableEnvironmentFetcher;
+import run.halo.app.infra.SystemSetting;
 import run.halo.app.infra.exception.AccessDeniedException;
 import run.halo.app.infra.exception.RateLimitExceededException;
 import run.halo.app.infra.utils.HaloUtils;
@@ -73,6 +76,7 @@ public class CommentFinderEndpoint implements CustomEndpoint {
     private final ReplyService replyService;
     private final SystemConfigurableEnvironmentFetcher environmentFetcher;
     private final RateLimiterRegistry rateLimiterRegistry;
+    private final MessageSource messageSource;
 
     @Override
     public RouterFunction<ServerResponse> endpoint() {
@@ -161,16 +165,22 @@ public class CommentFinderEndpoint implements CustomEndpoint {
 
     private Mono<ServerResponse> createCommentWithRedirectOnError(ServerRequest request) {
         return createComment(request)
-            .onErrorResume(error -> {
+            .onErrorResume(error -> environmentFetcher.fetchComment().flatMap(comment->{
+                // 获取客户端的语言环境
+                Locale locale = request.exchange().getLocaleContext().getLocale();
+                locale = (locale == null ? Locale.getDefault() : locale);
+                // 根据语言环境从资源文件中读取错误消息
+                String errorMessage = messageSource.getMessage("errorMsg", null, locale);
                 // 返回 JSON 响应，包含跳转的 URL
                 Map<String, String> responseBody = Map.of(
-                    "errorMsg", "该内容仅付费用户查看",
-                    "redirectUrl", "/tags/halo" // 指定跳转的路径
+                    "errorMsg", errorMessage,
+                    "redirectUrl", comment.getJumpUrl() // 指定跳转的路径
                 );
                 return ServerResponse.status(HttpStatus.UNAUTHORIZED) // 返回 400 状态码
                     .contentType(MediaType.APPLICATION_JSON) // 设置响应类型为 JSON
                     .bodyValue(responseBody);
-            });
+                })
+            );
     }
 
     Mono<ServerResponse> createComment(ServerRequest request) {
