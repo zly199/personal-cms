@@ -17,12 +17,17 @@ import io.github.resilience4j.reactor.ratelimiter.operator.RateLimiterOperator;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.net.URI;
 import java.util.List;
+import java.util.Locale;
+import org.springframework.context.MessageSource;
+import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springdoc.core.fn.builders.operation.Builder;
 import org.springdoc.webflux.core.fn.SpringdocRouteBuilder;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MultiValueMap;
@@ -48,6 +53,7 @@ import run.halo.app.extension.PageRequestImpl;
 import run.halo.app.extension.Ref;
 import run.halo.app.extension.router.IListRequest;
 import run.halo.app.infra.SystemConfigurableEnvironmentFetcher;
+import run.halo.app.infra.SystemSetting;
 import run.halo.app.infra.exception.AccessDeniedException;
 import run.halo.app.infra.exception.RateLimitExceededException;
 import run.halo.app.infra.utils.HaloUtils;
@@ -70,12 +76,13 @@ public class CommentFinderEndpoint implements CustomEndpoint {
     private final ReplyService replyService;
     private final SystemConfigurableEnvironmentFetcher environmentFetcher;
     private final RateLimiterRegistry rateLimiterRegistry;
+    private final MessageSource messageSource;
 
     @Override
     public RouterFunction<ServerResponse> endpoint() {
         final var tag = "CommentV1alpha1Public";
         return SpringdocRouteBuilder.route()
-            .POST("comments", this::createComment,
+            .POST("comments", this::createCommentWithRedirectOnError,
                 builder -> builder.operationId("CreateComment_1")
                     .description("Create a comment.")
                     .tag(tag)
@@ -87,7 +94,14 @@ public class CommentFinderEndpoint implements CustomEndpoint {
                                 .implementation(CommentRequest.class))
                         ))
                     .response(responseBuilder()
+                        .responseCode("200") // 正常响应
                         .implementation(Comment.class))
+                    .response(responseBuilder()
+                        .responseCode("302") // 重定向响应
+                        .description("Redirect to another page on error"))
+                    .response(responseBuilder()
+                        .responseCode("400") // 错误响应
+                        .description("Bad Request"))
             )
             .POST("comments/{name}/reply", this::createReply,
                 builder -> builder.operationId("CreateReply_1")
@@ -147,6 +161,26 @@ public class CommentFinderEndpoint implements CustomEndpoint {
     @Override
     public GroupVersion groupVersion() {
         return GroupVersion.parseAPIVersion("api.halo.run/v1alpha1");
+    }
+
+    private Mono<ServerResponse> createCommentWithRedirectOnError(ServerRequest request) {
+        return createComment(request)
+            .onErrorResume(error -> environmentFetcher.fetchComment().flatMap(comment->{
+                // 获取客户端的语言环境
+                Locale locale = request.exchange().getLocaleContext().getLocale();
+                locale = (locale == null ? Locale.getDefault() : locale);
+                // 根据语言环境从资源文件中读取错误消息
+                String errorMessage = messageSource.getMessage("vip.comment.errorMsg", null, locale);
+                // 返回 JSON 响应，包含跳转的 URL
+                Map<String, String> responseBody = Map.of(
+                    "errorMsg", errorMessage,
+                    "redirectUrl", comment.getJumpUrl() // 指定跳转的路径
+                );
+                return ServerResponse.status(HttpStatus.UNAUTHORIZED) // 返回 400 状态码
+                    .contentType(MediaType.APPLICATION_JSON) // 设置响应类型为 JSON
+                    .bodyValue(responseBody);
+                })
+            );
     }
 
     Mono<ServerResponse> createComment(ServerRequest request) {

@@ -139,6 +139,30 @@ spec:
           name: systemUserOnly
           value: true
           label: "仅允许注册用户评论"
+        - $formkit: checkbox
+          name: limitCommentRange
+          id: limitCommentRange
+          key: limitCommentRange
+          value: true
+          label: "限制可评论范围"
+        - $formkit: roleSelect
+          name: allowCommentRole
+          label: "允许评论的角色"
+          help: 仅允许指定角色的用户评论
+          if: "$get(limitCommentRange).value === true"
+        - $formkit: tagSelect
+          name: allowCommentTag
+          label: "允许评论的标签"
+          if: "$get(limitCommentRange).value === true"
+          help: 该标签的文章可以任意评论
+        - $formkit: text
+          name: jumpUrl
+          label: "跳转链接"
+          if: "$get(limitCommentRange).value === true"
+          help: 无权限之后, 跳转链接.eg /error/msg
+          value: /about
+          validation: required
+
     - group: routeRules
       label: 主题路由设置
       formSchema:

@@ -20,6 +20,7 @@ import org.springframework.util.Assert;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
+import run.halo.app.content.PostContentService;
 import run.halo.app.core.counter.CounterService;
 import run.halo.app.core.extension.content.Comment;
 import run.halo.app.core.extension.content.Reply;
@@ -46,7 +47,8 @@ public class ReplyServiceImpl extends AbstractCommentService implements ReplySer
         () -> new RequestRestrictedException("problemDetail.comment.waitingForApproval");
 
     public ReplyServiceImpl(RoleService roleService, ReactiveExtensionClient client,
-        UserService userService, CounterService counterService) {
+        UserService userService, CounterService counterService,
+        PostContentService postContentService) {
         super(roleService, client, userService, counterService);
     }
 
