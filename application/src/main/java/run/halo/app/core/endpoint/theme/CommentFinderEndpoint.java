@@ -170,7 +170,7 @@ public class CommentFinderEndpoint implements CustomEndpoint {
                 Locale locale = request.exchange().getLocaleContext().getLocale();
                 locale = (locale == null ? Locale.getDefault() : locale);
                 // 根据语言环境从资源文件中读取错误消息
-                String errorMessage = messageSource.getMessage("errorMsg", null, locale);
+                String errorMessage = messageSource.getMessage("vip.comment.errorMsg", null, locale);
                 // 返回 JSON 响应，包含跳转的 URL
                 Map<String, String> responseBody = Map.of(
                     "errorMsg", errorMessage,
