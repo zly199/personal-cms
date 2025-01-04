@@ -49,9 +49,13 @@ public class VmqMappingEndpoint implements CustomEndpoint {
     }
     private Mono<ServerResponse> getCreateOrderSign(ServerRequest request) {
 
-        //fixme: 校验用户登录
+        //fixme zly: 校验用户登录
 
-        //fixme: 获取用户信息
+        //fixme zly: 获取用户信息
+
+        //fixme zly: 获取通讯key
+
+        //fixme zly: 获取付款方式 和 付款金额(金额要后端计算)
 
         //payId	字符串	【必传】商户订单号，可以是时间戳，不可重复
         // type	整数	【必传】微信支付传入1 支付宝支付传入2
@@ -76,14 +80,14 @@ public class VmqMappingEndpoint implements CustomEndpoint {
 
 
     private Mono<ServerResponse> vmqAsyncPublic(ServerRequest request) {
-        //fixme 校验签名
+        //fixme zly 校验签名
 
         // 获取所有的 GET 参数
         var queryParams = request.queryParams();
         queryParams.forEach((key, values) -> {
             System.out.println("=====get vmq: Key: " + key + ", Values: " + values);
         });
-        //fixme: 修改用户为vip, 修改vip时间
+        //fixme zly: 修改用户为vip, 修改vip时间
 
         // 返回 success 字符串或查询参数（按需求修改）
         return ServerResponse.ok()
