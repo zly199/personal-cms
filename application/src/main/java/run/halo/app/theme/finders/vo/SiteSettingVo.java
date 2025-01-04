@@ -42,6 +42,8 @@ public class SiteSettingVo {
 
     CommentSetting comment;
 
+    VmqSetting vmqSetting;
+
     /**
      * Convert to system {@link ConfigMap} to {@link SiteSettingVo}.
      *
@@ -66,8 +68,12 @@ public class SiteSettingVo {
         SystemSetting.Seo seoSetting =
             toObject(data.get(SystemSetting.Seo.GROUP), SystemSetting.Seo.class);
 
-        SystemSetting.Comment commentSetting = toObject(data.get(SystemSetting.Comment.GROUP),
-            SystemSetting.Comment.class);
+        SystemSetting.Comment commentSetting =
+            toObject(data.get(SystemSetting.Comment.GROUP), SystemSetting.Comment.class);
+
+        SystemSetting.VmqSetting vmqSetting =
+            toObject(data.get(SystemSetting.VmqSetting.GROUP), SystemSetting.VmqSetting.class);
+
         return builder()
             .title(basicSetting.getTitle())
             .subtitle(basicSetting.getSubtitle())
@@ -93,6 +99,11 @@ public class SiteSettingVo {
                 .allowCommentRole(commentSetting.getAllowCommentRole())
                 .allowCommentTag(commentSetting.getAllowCommentTag())
                 .jumpUrl(commentSetting.getJumpUrl())
+                .build())
+            .vmqSetting(VmqSetting.builder()
+                .vmqKey(vmqSetting.getVmqKey())
+                .vmqUrl(vmqSetting.getVmqUrl())
+                .vmqReturnUrl(vmqSetting.getVmqReturnUrl())
                 .build())
             .build();
     }
@@ -144,5 +155,16 @@ public class SiteSettingVo {
         String allowCommentTag;
         // 跳转URL
         String jumpUrl;
+    }
+
+    @Value
+    @Builder
+    public static class VmqSetting {
+        // vmq地址
+        String vmqUrl;
+        // vmq通讯密钥
+        String vmqKey;
+        // vmq 返回页面地址
+        String vmqReturnUrl;
     }
 }

@@ -222,3 +222,21 @@ spec:
           label: "页脚"
           name: footer
           help: "注入代码到所有页面的页脚部分"
+    - group: vmqSetting
+      label: vmq设置
+      formSchema:
+        - $formkit: text
+          label: "vmq地址"
+          value: "vmqUrl"
+          name: vmqUrl
+          help: "vmq主机地址eg: https://pay.vmq.cc"
+        - $formkit: text
+          label: "vmq通讯密钥"
+          value: "vmqKey"
+          name: vmqKey
+          help: "vmq通讯密钥,eg: 93e93af2939t8adj3835k4f6553768f9"
+        - $formkit: vmqReturnUrl
+          label: "vmq充值返回地址"
+          value: "vmqReturnUrl"
+          name: vmqReturnUrl
+          help: "vmq充值返回地址,eg: https://halo.cc"
