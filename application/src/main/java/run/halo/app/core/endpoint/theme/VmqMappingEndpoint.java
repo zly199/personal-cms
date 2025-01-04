@@ -51,6 +51,8 @@ public class VmqMappingEndpoint implements CustomEndpoint {
 
         //fixme zly: 校验用户登录
 
+        //fixme zly: 校验用户是否为vip,如果已经是vip,则返回错误信息
+
         //fixme zly: 获取用户信息
 
         //fixme zly: 获取通讯key
@@ -83,6 +85,7 @@ public class VmqMappingEndpoint implements CustomEndpoint {
         //fixme zly 校验签名
 
         // 获取所有的 GET 参数
+        // http://localhost:8090/?payId=testPayOrder01&param=user01&type=2&price=0.1&reallyPrice=0.1&sign=ce5e65097e97fe56cf224708ddc95415
         var queryParams = request.queryParams();
         queryParams.forEach((key, values) -> {
             System.out.println("=====get vmq: Key: " + key + ", Values: " + values);
@@ -94,6 +97,7 @@ public class VmqMappingEndpoint implements CustomEndpoint {
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue("success"); // 或者直接返回 "success"
     }
+    //fixme zly: 增加return 页面, 重复get vmq订单状态, 如果充值成功, 但是会员没到账, 则设置会员信息.如果充值失败, 则返回失败信息, 如果充值成功, 会员到账, 则返回成功信息.
 
     public static String md5(String text) {
         //加密后的字符串
