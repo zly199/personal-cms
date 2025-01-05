@@ -235,8 +235,13 @@ spec:
           value: "vmqKey"
           name: vmqKey
           help: "vmq通讯密钥,eg: 93e93af2939t8adj3835k4f6553768f9"
-        - $formkit: vmqReturnUrl
+        - $formkit: text
           label: "vmq充值返回地址"
           value: "vmqReturnUrl"
           name: vmqReturnUrl
           help: "vmq充值返回地址,eg: https://halo.cc"
+        - $formkit: number
+          label: "vmq固定金额"
+          value: "199.0"
+          name: vmqPrice
+          help: "vmq充值金额,即会员价格"

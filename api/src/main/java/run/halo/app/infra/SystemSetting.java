@@ -124,6 +124,8 @@ public class SystemSetting {
         String vmqKey;
         // vmq 返回页面地址
         String vmqReturnUrl;
+        // vmq 固定金额(会员价格)
+        Double vmqPrice;
     }
 
     @Data

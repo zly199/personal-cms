@@ -64,6 +64,11 @@ public class SystemConfigurableEnvironmentFetcher implements Reconciler<Reconcil
             .switchIfEmpty(Mono.just(new SystemSetting.Comment()));
     }
 
+    public Mono<SystemSetting.VmqSetting> fetchVmqSetting() {
+        return fetch(SystemSetting.VmqSetting.GROUP, SystemSetting.VmqSetting.class)
+            .switchIfEmpty(Mono.just(new SystemSetting.VmqSetting()));
+    }
+
     public Mono<SystemSetting.Post> fetchPost() {
         return fetch(SystemSetting.Post.GROUP, SystemSetting.Post.class)
             .switchIfEmpty(Mono.just(new SystemSetting.Post()));

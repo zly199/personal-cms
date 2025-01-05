@@ -104,6 +104,7 @@ public class SiteSettingVo {
                 .vmqKey(vmqSetting.getVmqKey())
                 .vmqUrl(vmqSetting.getVmqUrl())
                 .vmqReturnUrl(vmqSetting.getVmqReturnUrl())
+                .vmqPrice(vmqSetting.getVmqPrice())
                 .build())
             .build();
     }
@@ -166,5 +167,7 @@ public class SiteSettingVo {
         String vmqKey;
         // vmq 返回页面地址
         String vmqReturnUrl;
+        // vmq 固定金额(会员价格)
+        Double vmqPrice;
     }
 }
