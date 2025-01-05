@@ -102,8 +102,6 @@ public class SiteSettingVo {
                 .build())
             .vmqSetting(VmqSetting.builder()
                 .vmqKey(vmqSetting.getVmqKey())
-                .vmqUrl(vmqSetting.getVmqUrl())
-                .vmqReturnUrl(vmqSetting.getVmqReturnUrl())
                 .vmqPrice(vmqSetting.getVmqPrice())
                 .build())
             .build();
@@ -161,12 +159,8 @@ public class SiteSettingVo {
     @Value
     @Builder
     public static class VmqSetting {
-        // vmq地址
-        String vmqUrl;
         // vmq通讯密钥
         String vmqKey;
-        // vmq 返回页面地址
-        String vmqReturnUrl;
         // vmq 固定金额(会员价格)
         Double vmqPrice;
     }
