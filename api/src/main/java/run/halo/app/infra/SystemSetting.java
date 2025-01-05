@@ -116,6 +116,19 @@ public class SystemSetting {
     }
 
     @Data
+    public static class VmqSetting {
+        public static final String GROUP = "vmqSetting";
+        // vmq地址
+        String vmqUrl;
+        // vmq通讯密钥
+        String vmqKey;
+        // vmq 返回页面地址
+        String vmqReturnUrl;
+        // vmq 固定金额(会员价格)
+        Double vmqPrice;
+    }
+
+    @Data
     public static class Menu {
         public static final String GROUP = "menu";
         public String primary;
