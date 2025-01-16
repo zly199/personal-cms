@@ -16,7 +16,7 @@ import org.springframework.lang.NonNull;
  */
 @Getter
 public class UserNotificationPreference {
-    private static final String DEFAULT_NOTIFIER = "default-email-notifier";
+    public static final String DEFAULT_NOTIFIER = "default-email-notifier";
 
     private final ReasonTypeNotifier reasonTypeNotifier = new ReasonTypeNotifier();
 
