@@ -63,6 +63,9 @@ spec:
                   value: "TLS"
                 - label: "不加密"
                   value: "NONE"
+            - $formkit: text
+              label: "站长反馈抄送邮件"
+              name: feedbackCCEmail
 ---
 apiVersion: notification.halo.run/v1alpha1
 kind: ReasonType

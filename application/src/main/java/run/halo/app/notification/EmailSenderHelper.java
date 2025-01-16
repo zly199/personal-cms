@@ -25,6 +25,8 @@ public interface EmailSenderHelper {
         private String host;
         private Integer port;
         private String encryption;
+        //feedbackCCEmail
+        private String feedbackCCEmail;
 
         /**
          * Gets email display name.
