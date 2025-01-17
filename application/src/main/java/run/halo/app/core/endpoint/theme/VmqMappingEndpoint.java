@@ -4,8 +4,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springdoc.webflux.core.fn.SpringdocRouteBuilder;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.DigestUtils;
@@ -17,6 +21,7 @@ import org.springframework.web.server.ServerWebInputException;
 import reactor.core.publisher.Mono;
 import run.halo.app.core.extension.User;
 import run.halo.app.core.extension.endpoint.CustomEndpoint;
+import run.halo.app.core.user.service.RoleService;
 import run.halo.app.core.user.service.UserService;
 import run.halo.app.extension.GroupVersion;
 import run.halo.app.infra.AnonymousUserConst;
@@ -36,8 +41,12 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder;
+import static run.halo.app.security.authorization.AuthorityUtils.ANONYMOUS_ROLE_NAME;
+import static run.halo.app.security.authorization.AuthorityUtils.AUTHENTICATED_ROLE_NAME;
+import static run.halo.app.security.authorization.AuthorityUtils.ROLE_PREFIX;
 
 /**
  * Endpoint for site stats query APIs.
@@ -51,6 +60,8 @@ import static org.springdoc.core.fn.builders.apiresponse.Builder.responseBuilder
 public class VmqMappingEndpoint implements CustomEndpoint {
 
     private final UserService userService;
+
+    private final RoleService roleService;
 
     private final SystemConfigurableEnvironmentFetcher environmentFetcher;
 
@@ -78,9 +89,78 @@ public class VmqMappingEndpoint implements CustomEndpoint {
                     .response(responseBuilder()
                         .implementation(String.class)
                     )
+            ).GET("vmq/updateUserCache", this::updateUserCache,
+                builder -> builder.operationId("updateUserCache")
+                    .description("Vmq async notify updateUserCache")
+                    .tag(tag)
+                    .response(responseBuilder()
+                        .implementation(String.class)
+                    )
             )
             .build();
     }
+
+    /**
+     * http://localhost:8090/apis/api.halo.run/v1alpha1/vmq/updateUserCache
+     * @param request
+     * @return
+     */
+    private Mono<ServerResponse> updateUserCache(ServerRequest request) {
+        return ReactiveSecurityContextHolder.getContext()
+            .flatMap(securityContext -> {
+                var currentAuth = securityContext.getAuthentication();
+                // 1. 增加 null 检查，防止 currentAuth 为 null
+                if (currentAuth == null) {
+                    return ServerResponse.status(HttpStatus.UNAUTHORIZED).build();
+                }
+                // 获取用户角色
+                return roleService.getRolesByUsername(currentAuth.getName())
+                    .concatWithValues(AUTHENTICATED_ROLE_NAME, ANONYMOUS_ROLE_NAME)
+                    .collectList() // 将角色收集为列表，方便后续操作
+                    .flatMap(roles -> {
+
+                        // 处理角色逻辑
+                        var existingAuthorities = currentAuth.getAuthorities().stream()
+                            .map(auth -> auth.getAuthority())
+                            .collect(Collectors.toSet());
+
+                        // 添加新的角色（避免重复）
+                        //Set<String> newRoles = Set.of("ROLE_role-ihcYs"); // 示例：新的角色
+                        Set<String> newRoles = roles.stream()
+                            .map(role -> ROLE_PREFIX + role)
+                            .collect(Collectors.toSet());
+                        existingAuthorities.addAll(newRoles);
+
+                        return environmentFetcher.fetch(SystemSetting.User.GROUP, SystemSetting.User.class)
+                            .flatMap(userSetting -> {
+                                //existingAuthorities 删除默认角色
+                                existingAuthorities.remove(ROLE_PREFIX + userSetting.getDefaultRole());
+                                // 转换为 SimpleGrantedAuthority
+                                var updatedAuthorities = existingAuthorities.stream()
+                                    .map(SimpleGrantedAuthority::new)
+                                    .toList();
+
+                                // 创建新的 Authentication 对象
+                                var updatedAuth = new UsernamePasswordAuthenticationToken(
+                                    currentAuth.getPrincipal(),
+                                    currentAuth.getCredentials(),
+                                    updatedAuthorities
+                                );
+
+                                // 保留 details 信息
+                                updatedAuth.setDetails(currentAuth.getDetails());
+
+                                // 更新 SecurityContext 中的 Authentication
+                                securityContext.setAuthentication(updatedAuth);
+
+                                // 3. 返回正常响应
+                                return ServerResponse.ok().build();
+                            });
+                    });
+            });
+    }
+
+
     private Mono<ServerResponse> getCreateOrderSign(ServerRequest request) {
 
         return ReactiveSecurityContextHolder.getContext()
@@ -155,7 +235,7 @@ public class VmqMappingEndpoint implements CustomEndpoint {
 
         return environmentFetcher.fetchVmqSetting().flatMap(vmqSetting -> {
             // 获取所有的 GET 参数
-            // http://localhost:8090/?payId=testPayOrder01&param=user01&type=2&price=0.1&reallyPrice=0.1&sign=ce5e65097e97fe56cf224708ddc95415
+            // http://localhost:8090/apis/api.halo.run/v1alpha1/async/notify?payId=testPayOrder01&param=zlytest&type=2&price=0.1&reallyPrice=0.1&sign=9e0cd7b98a846588699e1a3ff20f993b
             var queryParams = request.queryParams();
             //
             log.info("=======vmq request queryParams:{}=========",queryParams);
