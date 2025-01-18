@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import type { CSSProperties } from "vue";
-import { computed } from "vue";
+import { computed, ref, onMounted, watch, nextTick } from "vue";
 import type { Theme } from "./interface";
 
 const props = withDefaults(
@@ -18,16 +18,38 @@ const props = withDefaults(
   }
 );
 
+const textContent = ref("");
+const contentStyle = ref({});
+
 const classes = computed(() => {
   return [`tag-${props.theme}`, { "tag-rounded": props.rounded }];
 });
+
+onMounted(() => {
+  nextTick(() => {
+    const slotElement = document.querySelector(".tag-content");
+    if (slotElement) {
+      textContent.value = slotElement.textContent?.trim() || "";
+    }
+  });
+});
+
+watch(
+  () => textContent.value,
+  (newValue) => {
+    contentStyle.value = newValue.toLowerCase().includes("vip")
+      ? { backgroundColor: "#FDDC69", color: "#6A4C1C" } // 深一点的黄色背景，深棕色文字
+      : { backgroundColor: "#A5D6A7", color: "#255D27" }; // 深一点的绿色背景，深绿色文字
+  }
+);
 </script>
+
 <template>
   <div :class="classes" :style="styles" class="tag-wrapper">
     <div v-if="$slots.leftIcon" class="tag-left-icon">
       <slot name="leftIcon" />
     </div>
-    <span class="tag-content">
+    <span class="tag-content" :style="contentStyle">
       <slot />
     </span>
     <div v-if="$slots.rightIcon" class="tag-right-icon">
@@ -35,6 +57,7 @@ const classes = computed(() => {
     </div>
   </div>
 </template>
+
 <style lang="scss">
 .tag-wrapper {
   @apply rounded-base
