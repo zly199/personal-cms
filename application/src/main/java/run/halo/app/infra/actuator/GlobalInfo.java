@@ -43,6 +43,8 @@ public class GlobalInfo {
 
     private String siteTitle;
 
+    private String siteLogoUrl;
+
     @Data
     public static class SocialAuthProvider {
         private String name;
