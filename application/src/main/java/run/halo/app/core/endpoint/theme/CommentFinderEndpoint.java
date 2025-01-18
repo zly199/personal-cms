@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.net.URI;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.context.MessageSource;
@@ -31,6 +32,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.ErrorResponseException;
 import org.springframework.web.reactive.function.server.RouterFunction;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -169,13 +171,20 @@ public class CommentFinderEndpoint implements CustomEndpoint {
                 // 获取客户端的语言环境
                 Locale locale = request.exchange().getLocaleContext().getLocale();
                 locale = (locale == null ? Locale.getDefault() : locale);
-                // 根据语言环境从资源文件中读取错误消息
-                String errorMessage = messageSource.getMessage("vip.comment.errorMsg", null, locale);
-                // 返回 JSON 响应，包含跳转的 URL
-                Map<String, String> responseBody = Map.of(
-                    "errorMsg", errorMessage,
-                    "redirectUrl", comment.getJumpUrl() // 指定跳转的路径
-                );
+                //fixme zly 错误处理
+                Map<String, String> responseBody = new HashMap<>();
+                if (error instanceof ErrorResponseException ee) {
+                    // 根据语言环境从资源文件中读取错误消息
+                    String detailMessageCode = ee.getDetailMessageCode();
+                    String errorMessage = messageSource.getMessage(detailMessageCode, null, locale);
+                    // 返回 JSON 响应，包含跳转的 URL
+                    responseBody.putAll(Map.of(
+                        "errorMsg", errorMessage,
+                        "redirectUrl", comment.getJumpUrl() // 指定跳转的路径
+                    ));
+                }
+
+
                 return ServerResponse.status(HttpStatus.UNAUTHORIZED) // 返回 400 状态码
                     .contentType(MediaType.APPLICATION_JSON) // 设置响应类型为 JSON
                     .bodyValue(responseBody);

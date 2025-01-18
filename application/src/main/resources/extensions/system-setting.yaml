@@ -162,6 +162,12 @@ spec:
           help: 无权限之后, 跳转链接.eg /error/msg
           value: /about
           validation: required
+        - $formkit: number
+          name: limitCommentCount
+          label: "每天评论上限"
+          if: "$get(limitCommentRange).value === true"
+          value: 10
+          validation: required
 
     - group: routeRules
       label: 主题路由设置

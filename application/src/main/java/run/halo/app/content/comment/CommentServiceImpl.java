@@ -6,6 +6,8 @@ import static run.halo.app.extension.index.query.QueryFactory.isNull;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Set;
 import java.util.function.Function;
 import org.apache.commons.lang3.BooleanUtils;
@@ -92,7 +94,7 @@ public class CommentServiceImpl extends AbstractCommentService implements Commen
                 if (checkCommentOwner(comment, commentSetting.getSystemUserOnly())) {
                     return Mono.error(
                         new AccessDeniedException("Allow only system users to comment.",
-                            "problemDetail.comment.systemUsersOnly", null));
+                            "vip.comment.errorMsg", null));
                 }
 
                 if (comment.getSpec().getTop() == null) {
@@ -116,25 +118,59 @@ public class CommentServiceImpl extends AbstractCommentService implements Commen
                 comment.getSpec().setHidden(false);
 
                 if (commentSetting.getLimitCommentRange() != null
-                        && commentSetting.getLimitCommentRange()) {
-                    return hasCommentPermission(comment,commentSetting)
+                    && commentSetting.getLimitCommentRange()) {
+                    return hasCommentPermission(comment, commentSetting)
                         .flatMap(hasPermission -> {
                             if (!hasPermission) {
                                 return Mono.error(
                                     new AccessDeniedException("Allow only system users to comment.",
-                                        "problemDetail.comment.systemUsersOnly", null));
+                                        "vip.comment.errorMsg", null));
                             }
                             return Mono.just(comment); // 权限检查通过，继续返回评论
                         });
                 }
                 return Mono.just(comment);
             })
-
             .flatMap(populatedComment -> Mono.when(populateOwner(populatedComment),
                     populateApproveState(populatedComment))
                 .thenReturn(populatedComment)
-            )
+            ).flatMap(comment1 -> {
+                return environmentFetcher.fetchComment()
+                    .flatMap(commentSetting -> {
+                        Integer limitCount = commentSetting.getLimitCommentCount();
+                        if (limitCount == null || limitCount <= 0) {
+                            return Mono.just(comment1);
+                        }
+                        // 查询当天评论次数
+                        return countUserCommentsToday(comment.getSpec().getOwner().getName())
+                            .flatMap(count -> {
+                                if (count >= limitCount) {
+                                    return Mono.error(new AccessDeniedException(
+                                        "Comment limit exceeded for today.",
+                                        "vip.comment.limitExceeded", null));
+                                }
+                                return Mono.just(comment1);
+                            });
+                        });
+            })
             .flatMap(client::create);
+    }
+
+    private Mono<Long> countUserCommentsToday(String userName) {
+        LocalDate today = LocalDate.now();
+        Instant startOfDay = today.atStartOfDay(ZoneId.systemDefault()).toInstant();
+        Instant endOfDay = today.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
+
+        return client.listAll(Comment.class, new ListOptions(), Sort.by("metadata.creationTimestamp"))
+            .filter(comment -> {
+                Comment.CommentOwner owner = comment.getSpec().getOwner();
+                return owner != null && owner.getName().equals(userName);
+            })
+            .filter(comment -> {
+                Instant approvedTime = comment.getSpec().getApprovedTime();
+                return approvedTime != null && !approvedTime.isBefore(startOfDay) && !approvedTime.isAfter(endOfDay);
+            })
+            .count();
     }
 
     Mono<Boolean> hasCommentPermission(Comment comment, SystemSetting.Comment commentSetting) {

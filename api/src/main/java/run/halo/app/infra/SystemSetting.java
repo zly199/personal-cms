@@ -113,6 +113,8 @@ public class SystemSetting {
         String allowCommentTag;
         // 限制跳转页面
         String jumpUrl;
+        // 限制每天评论次数
+        Integer limitCommentCount;
     }
 
     @Data

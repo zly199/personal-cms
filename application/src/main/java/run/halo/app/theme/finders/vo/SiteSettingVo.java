@@ -98,6 +98,7 @@ public class SiteSettingVo {
                 .limitCommentUser(commentSetting.getLimitCommentRange())
                 .allowCommentRole(commentSetting.getAllowCommentRole())
                 .allowCommentTag(commentSetting.getAllowCommentTag())
+                .limitCommentCount(commentSetting.getLimitCommentCount())
                 .jumpUrl(commentSetting.getJumpUrl())
                 .build())
             .vmqSetting(VmqSetting.builder()
@@ -154,6 +155,8 @@ public class SiteSettingVo {
         String allowCommentTag;
         // 跳转URL
         String jumpUrl;
+        // 限制每天评论次数
+        Integer limitCommentCount;
     }
 
     @Value
