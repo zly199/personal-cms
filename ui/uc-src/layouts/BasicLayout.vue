@@ -24,11 +24,29 @@ import { defineStore, storeToRefs } from "pinia";
 import { computed, onMounted, reactive, ref } from "vue";
 import { useI18n } from "vue-i18n";
 import { RouterView, useRoute, useRouter } from "vue-router";
-import IconLogo from "~icons/core/logo?width=5rem&height=2rem";
 
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
+
+const logoUrl = ref("");
+const fetchLogoUrl = async () => {
+  try {
+    const response = await fetch("/apis/api.halo.run/v1alpha1/other/logo-url");
+    if (response.ok) {
+      const data = await response.text();
+      logoUrl.value = `${window.location.origin}${data.trim()}`;
+    } else {
+      console.error("Failed to fetch logo URL:", response.statusText);
+    }
+  } catch (error) {
+    console.error("Error fetching logo URL:", error);
+  }
+};
+
+onMounted(() => {
+  fetchLogoUrl();
+});
 
 const moreMenuVisible = ref(false);
 const moreMenuRootVisible = ref(false);
@@ -51,7 +69,6 @@ const handleLogout = () => {
 
 const { menus, minimenus } = useRouteMenuGenerator(coreMenuGroups);
 
-// aside scroll
 const navbarScroller = ref();
 
 const useNavbarScrollStore = defineStore("navbar", {
@@ -116,7 +133,13 @@ const disallowAccessConsole = computed(() => {
           target="_blank"
           :title="$t('core.sidebar.operations.visit_homepage.title')"
         >
-          <IconLogo
+          <!--          <IconLogo-->
+          <!--            class="cursor-pointer select-none transition-all hover:brightness-125"-->
+          <!--          />-->
+          <img
+            v-if="logoUrl"
+            :src="logoUrl"
+            alt="Logo"
             class="cursor-pointer select-none transition-all hover:brightness-125"
           />
         </a>
@@ -310,6 +333,14 @@ const disallowAccessConsole = computed(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.logo img {
+  max-width: 40%;
+  height: auto;
+  margin: 0 auto;
+}
+</style>
 
 <style lang="scss">
 .navbar {
