@@ -289,6 +289,31 @@ public class SchemeInitializer implements ApplicationListener<ApplicationContext
                     var stats = JsonUtils.jsonToObject(statsStr, Stats.class);
                     return defaultIfNull(stats.getVisit(), 0).toString();
                 })));
+            //点赞数
+            indexSpecs.add(new IndexSpec()
+                .setName("stats.upvote")
+                .setIndexFunc(simpleAttribute(Post.class, post -> {
+                    var annotations = MetadataUtil.nullSafeAnnotations(post);
+                    var statsStr = annotations.get(Post.STATS_ANNO);
+                    if (StringUtils.isBlank(statsStr)) {
+                        return "0";
+                    }
+                    var stats = JsonUtils.jsonToObject(statsStr, Stats.class);
+                    return defaultIfNull(stats.getUpvote(), 0).toString();
+                })));
+            //评论数
+
+            indexSpecs.add(new IndexSpec()
+                .setName("stats.approvedComment")
+                .setIndexFunc(simpleAttribute(Post.class, post -> {
+                    var annotations = MetadataUtil.nullSafeAnnotations(post);
+                    var statsStr = annotations.get(Post.STATS_ANNO);
+                    if (StringUtils.isBlank(statsStr)) {
+                        return "0";
+                    }
+                    var stats = JsonUtils.jsonToObject(statsStr, Stats.class);
+                    return defaultIfNull(stats.getApprovedComment(), 0).toString();
+                })));
 
             indexSpecs.add(new IndexSpec()
                 .setName("stats.totalComment")
