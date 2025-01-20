@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -135,6 +136,10 @@ public class CommentServiceImpl extends AbstractCommentService implements Commen
                     populateApproveState(populatedComment))
                 .thenReturn(populatedComment)
             ).flatMap(comment1 -> {
+                if (comment.getSpec() != null && comment.getSpec().getSubjectRef() != null
+                    && comment.getSpec().getSubjectRef().getKind().equals("SinglePage")) {
+                    return Mono.just(comment1);
+                }
                 return environmentFetcher.fetchComment()
                     .flatMap(commentSetting -> {
                         Integer limitCount = commentSetting.getLimitCommentCount();
@@ -143,8 +148,8 @@ public class CommentServiceImpl extends AbstractCommentService implements Commen
                         }
                         // 查询当天评论次数
                         return countUserCommentsToday(comment.getSpec().getOwner().getName())
-                            .flatMap(count -> {
-                                if (count >= limitCount) {
+                            .flatMap(artileIds -> {
+                                if (artileIds.size() >= limitCount) {
                                     return Mono.error(new AccessDeniedException(
                                         "Comment limit exceeded for today.",
                                         "vip.comment.limitExceeded", null));
@@ -156,12 +161,20 @@ public class CommentServiceImpl extends AbstractCommentService implements Commen
             .flatMap(client::create);
     }
 
-    private Mono<Long> countUserCommentsToday(String userName) {
+    private Mono<Set<String>> countUserCommentsToday(String userName) {
         LocalDate today = LocalDate.now();
         Instant startOfDay = today.atStartOfDay(ZoneId.systemDefault()).toInstant();
         Instant endOfDay = today.plusDays(1).atStartOfDay(ZoneId.systemDefault()).toInstant();
 
         return client.listAll(Comment.class, new ListOptions(), Sort.by("metadata.creationTimestamp"))
+            .filter(comment -> {
+                //must be post comment
+                if (comment.getSpec() != null && comment.getSpec().getSubjectRef() != null
+                        && comment.getSpec().getSubjectRef().getKind().equals("SinglePage")) {
+                    return false;
+                }
+                return true;
+            })
             .filter(comment -> {
                 Comment.CommentOwner owner = comment.getSpec().getOwner();
                 return owner != null && owner.getName().equals(userName);
@@ -170,7 +183,8 @@ public class CommentServiceImpl extends AbstractCommentService implements Commen
                 Instant approvedTime = comment.getSpec().getApprovedTime();
                 return approvedTime != null && !approvedTime.isBefore(startOfDay) && !approvedTime.isAfter(endOfDay);
             })
-            .count();
+            .map(comment -> comment.getSpec().getSubjectRef().getName()) // 提取文章 ID
+            .collect(Collectors.toSet()); // 收集为 Set<String>
     }
 
     Mono<Boolean> hasCommentPermission(Comment comment, SystemSetting.Comment commentSetting) {
